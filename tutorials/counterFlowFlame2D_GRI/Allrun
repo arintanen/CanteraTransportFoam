@@ -4,6 +4,12 @@ cd ${0%/*} || exit 1    # Run from this directory
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 
+cp -rn $FOAM_TUTORIALS/multicomponentFluid/counterFlowFlame2D_GRI/system .
+cp -rn $FOAM_TUTORIALS/multicomponentFluid/counterFlowFlame2D_GRI/0 .
+cp -rn $FOAM_TUTORIALS/multicomponentFluid/counterFlowFlame2D_GRI/constant/* constant
+
+foamDictionary system/controlDict -entry libs -add "(\"libCanteraTranspordsa.so\")"
+
 runApplication blockMesh
 
 runApplication decomposePar -cellProc
