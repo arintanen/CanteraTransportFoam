@@ -1,1 +1,0 @@
-../fluid/laminar/CanteraMixtureAveraged/CanteraMixtureAveraged.C
