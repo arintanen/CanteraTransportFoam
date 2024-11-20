@@ -1,0 +1,5 @@
+#!/bin/bash
+cd ${0%/*} || exit 1    # run from this directory
+
+git clone https://github.com/Cantera/cantera.git -b 3.0
+scons build -j4 hdf_support=n python_package=minimal 
