@@ -8,7 +8,7 @@ cp -rn $FOAM_TUTORIALS/multicomponentFluid/counterFlowFlame2D_GRI/system .
 cp -rn $FOAM_TUTORIALS/multicomponentFluid/counterFlowFlame2D_GRI/0 .
 cp -rn $FOAM_TUTORIALS/multicomponentFluid/counterFlowFlame2D_GRI/constant/* constant
 
-foamDictionary system/controlDict -entry libs -add "(\"libCanteraTranspordsa.so\")"
+foamDictionary system/controlDict -entry libs -add "(\"libCanteraTransport.so\")"
 
 runApplication blockMesh
 

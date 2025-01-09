@@ -17,6 +17,7 @@ FoamFile
 laminar
 {
     model           CanteraMixtureAveraged;
+    // This mechanism is shipped along Cantera's default installation
     mechFile        "gri30.yaml";
     soretEnabled true;
 

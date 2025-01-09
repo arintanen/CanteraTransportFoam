@@ -2,9 +2,10 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2020-2021 OpenFOAM Foundation
+    \\  /    A nd           |
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
+Copyright (C) 2024 Aleksi Rintanen, Aalto university
 License
 
     OpenFOAM is free software: you can redistribute it and/or modify it
@@ -55,10 +56,8 @@ class CanteraMixtureAveraged
         //- Correction flux
         mutable surfaceScalarField Jc_;
 	   	    
-        
-	    bool implicitFlux_; 
-	    
-	    bool soretEnabled_; 
+        //- Enable soret effect  
+	bool soretEnabled_; 
 
         //- Calculate correction flux    	    
  	    void correctJc() const;

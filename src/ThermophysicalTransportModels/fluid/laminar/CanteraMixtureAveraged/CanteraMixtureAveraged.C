@@ -2,9 +2,10 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2020-2021 OpenFOAM Foundation
+    \\  /    A nd           |
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
+Copyright (C) 2024 Aleksi Rintanen, Aalto university
 License
 
     OpenFOAM is free software: you can redistribute it and/or modify it
@@ -65,7 +66,6 @@ CanteraMixtureAveraged<laminarThermophysicalTransportModel>::CanteraMixtureAvera
          dimensionedScalar(dimMass/dimArea/dimTime, 0)
      ),
 
-    implicitFlux_(true),
     soretEnabled_(true)
     
 {
@@ -89,8 +89,6 @@ bool CanteraMixtureAveraged<laminarThermophysicalTransportModel>::read()
         unityLewisFourier<laminarThermophysicalTransportModel>::read()
     )
     {
-        implicitFlux_ = this->coeffDict_.lookupOrDefault("implicitHeatFlux",true);
-        Info << "Selecting "<< (implicitFlux_ ? "implicit" : "explicit") << " formulation for the heat flux" << endl;
         soretEnabled_ = this->coeffDict_.lookupOrDefault("soretEnabled",true);
         Info << "Reading Cantera mechanism" << endl;
         fileName mechname = this->coeffDict_.lookup("mechFile");
@@ -186,7 +184,6 @@ tmp<fvScalarMatrix> CanteraMixtureAveraged<laminarThermophysicalTransportModel>:
      
      tmp<fvScalarMatrix> tmpDivq
      (
-        implicitFlux_ ? -fvm::laplacian(this->alpha()*this->alphaEff(), he) :
         fvm::Su 
          (
              -fvc::laplacian(this->alpha()*this->kappaEff(), this->thermo().T()),
@@ -198,11 +195,11 @@ tmp<fvScalarMatrix> CanteraMixtureAveraged<laminarThermophysicalTransportModel>:
      const volScalarField& p = this->thermo().p();
      const volScalarField& T = this->thermo().T();
 
-     if (!implicitFlux_) 
-     {
+
+     
      tmpDivq.ref() -=
         correction(fvm::laplacian(this->alpha()*this->alphaEff(), he));
-     }
+     
 
  
      surfaceScalarField sumJh
@@ -223,10 +220,7 @@ tmp<fvScalarMatrix> CanteraMixtureAveraged<laminarThermophysicalTransportModel>:
         const surfaceScalarField ji(unityLewisFourier<laminarThermophysicalTransportModel>::j(Y[i]));
 
         sumJh += ji*fvc::interpolate(hi);
-        if (implicitFlux_) {
-            sumJh += fvc::interpolate(this->alpha()*this->alphaEff()*hi)*fvc::snGrad(Y[i]);
-
-        }       
+     
      }
  
  
