@@ -456,7 +456,7 @@ void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::correctJc() co
        setSnGrad<zeroMassFluxFvPatchScalarField>
             (
                 Y[i].boundaryFieldRef(),
-                gradLogT.boundaryField()
+                -gradLogT.boundaryField()
                *DTi.boundaryField()
                /aDeff.boundaryField()  
             );

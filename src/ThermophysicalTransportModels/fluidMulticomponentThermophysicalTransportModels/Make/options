@@ -1,5 +1,4 @@
 EXE_INC = \
-     -O0 -g \
     -I$(LIB_SRC)/MomentumTransportModels/momentumTransportModels/lnInclude \
     -I$(LIB_SRC)/MomentumTransportModels/compressible/lnInclude \
     -I$(LIB_SRC)/ThermophysicalTransportModels/fluidMulticomponentThermo/lnInclude \

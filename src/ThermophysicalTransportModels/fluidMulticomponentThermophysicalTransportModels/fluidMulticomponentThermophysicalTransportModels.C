@@ -29,6 +29,7 @@ License
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
+
 // -------------------------------------------------------------------------- //
 // Laminar models
 // -------------------------------------------------------------------------- //
@@ -36,5 +37,7 @@ License
 
  #include "CanteraMixtureAveraged.H"
  makeLaminarThermophysicalTransportModel(CanteraMixtureAveraged);
+  #include "CanteraMulticomponent.H"
+ makeLaminarThermophysicalTransportModel(CanteraMulticomponent);
 
 // ************************************************************************* //
