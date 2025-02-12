@@ -29,7 +29,8 @@ License
 #include "fvmSup.H"
 #include "fvmDiv.H"
 #include "surfaceInterpolate.H"
-#include "wallPolyPatch.H"
+#include "zeroDTFvPatchScalarField.H"
+#include "zeroMassFluxFvPatchScalarField.H"
 #include "cantera/transport.h"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -74,6 +75,30 @@ CanteraMixtureAveraged<laminarThermophysicalTransportModel>::CanteraMixtureAvera
             << "Internal energy is not supported as a solution variable. Please use enthalpy instead."
             << exit(FatalError);
     }
+
+    const PtrList<volScalarField>& Y = this->thermo().Y();
+    DT_.setSize(Y.size());
+    forAll(DT_, i)
+     {
+         DT_.set
+         (
+             i,
+             new volScalarField
+             (
+                 IOobject
+                 (
+                     "DT_" + Y[i].name(),
+                     this->thermo().mesh().time().name(),
+                     this->thermo().mesh(),
+                     IOobject::NO_READ,
+                     IOobject::NO_WRITE
+                 ),
+                 this->thermo().mesh(),
+                 dimensionedScalar(dimDynamicViscosity, 0)
+             )
+         );
+
+     }
     read();
     this->printCoeffs(typeName);
 }
@@ -115,6 +140,7 @@ bool CanteraMixtureAveraged<laminarThermophysicalTransportModel>::read()
             }
             speciesIndex_[i] = std::distance(speciesNames.begin(), iter);
         }
+        updateDm();
         return true;
     }
     else
@@ -276,7 +302,6 @@ void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::updateDm() con
     const volScalarField& T = this->thermo().T();
     const volScalarField Wm(this->thermo().W());
     Dm_.setSize(Y.size());
-    DT_.setSize(Y.size());
     forAll(Dm_, i)
     {
         Dm_.set
@@ -289,16 +314,7 @@ void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::updateDm() con
                     dimensionedScalar(dimKinematicViscosity, scalar(0))
                 )
             );
-        DT_.set
-            (
-                i,
-                volScalarField::New
-                (
-                    "DT_" + Y[i].name(),
-                    T.mesh(),
-                    dimensionedScalar(dimDynamicViscosity, scalar(0))
-                )
-            );
+         DT_[i] = Zero;
         } 
     Cantera::shared_ptr<Cantera::ThermoPhase> gas = solution_->thermo();
     scalarField Ys(Y.size());
@@ -327,30 +343,38 @@ void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::updateDm() con
 	        }
        }
     }
-    const polyBoundaryMesh& pbm = this->thermo().T().mesh().boundaryMesh();
+
     forAll(T.boundaryField(), patchi)
     {
-        forAll(T.boundaryField()[patchi],celli) 
+        forAll(T.boundaryField()[patchi],facei) 
         {
             forAll(Y,i) {
-                if(Y[i].boundaryField()[patchi][celli] > epsilon)
+                if(Y[i].boundaryField()[patchi][facei] > epsilon)
                 {
                     Ys[speciesIndex_[i]] = epsilon;
                 } 
                 else {
-                    Ys[speciesIndex_[i]] = Y[i].boundaryField()[patchi][celli] + SMALL;
+                    Ys[speciesIndex_[i]] = Y[i].boundaryField()[patchi][facei] + SMALL;
                 }
     	    }
-            gas->setState_TPY(T.boundaryField()[patchi][celli], p.boundaryField()[patchi][celli], Ys.begin());
+            gas->setState_TPY(T.boundaryField()[patchi][facei], p.boundaryField()[patchi][facei], Ys.begin());
             solution_->transport()->getMixDiffCoeffs(Dms.begin());
             forAll(Y,i) {
-                Dm_[i][celli] = Dms[speciesIndex_[i]];
+                Dm_[i].boundaryFieldRef()[patchi][facei] = Dms[speciesIndex_[i]];
+                
             }
-            if(soretEnabled_ && !isA<wallPolyPatch>(pbm[patchi])) {    
+            if(soretEnabled_) {
                 solution_->transport()->getThermalDiffCoeffs(DTs.begin());
                 forAll(Y,i) {
-                    DT_[i][celli] = DTs[speciesIndex_[i]];
+                    DT_[i].boundaryFieldRef()[patchi][facei] = DTs[speciesIndex_[i]];
                 }
+            }
+        }
+        forAll(Y,i)
+        {
+            if(isA<zeroDTFvPatchScalarField>(Y[i].boundaryField()[patchi]))
+            {
+                DT_[i].boundaryFieldRef()[patchi] = Zero;          
             }
         }
     }      
@@ -420,14 +444,23 @@ template<class laminarThermophysicalTransportModel>
 void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::correctJc() const
 {
    
-   const PtrList<volScalarField>& Y = this->thermo().Y();
+   PtrList<volScalarField>& Y = const_cast<PtrList<volScalarField>&>(this->thermo().Y());
    const volScalarField& T = this->thermo().T();
    surfaceScalarField gradLogT = fvc::snGrad(T)/fvc::interpolate(T);
    Jc_ *= scalar(0);
    forAll(Y, i)
    {
-        Jc_ -= fvc::interpolate(this->alpha()*this->DEff(Y[i]))*fvc::snGrad(Y[i])
-          + fvc::interpolate(DT_[i])*gradLogT;
+   
+       surfaceScalarField aDeff = fvc::interpolate(this->alpha()*this->DEff(Y[i]));
+       surfaceScalarField DTi = fvc::interpolate(DT_[i]);
+       setSnGrad<zeroMassFluxFvPatchScalarField>
+            (
+                Y[i].boundaryFieldRef(),
+                gradLogT.boundaryField()
+               *DTi.boundaryField()
+               /aDeff.boundaryField()  
+            );
+        Jc_ -= aDeff*fvc::snGrad(Y[i]) + DTi*gradLogT;
    }  
 
 }
