@@ -2,4 +2,5 @@ fluidMulticomponentThermophysicalTransportModels.C
 fvPatchFields/zeroMassFlux/zeroMassFluxFvPatchScalarField.C
 fvPatchFields/zeroDT/zeroDTFvPatchScalarField.C
 functionObjects/specieFlux/specieFlux2.C
+functionObjects/specieFlux/specieDiv.C
 LIB = $(FOAM_USER_LIBBIN)/libCanteraTransport
