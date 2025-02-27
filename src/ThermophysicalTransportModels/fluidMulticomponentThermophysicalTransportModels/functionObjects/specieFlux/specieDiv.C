@@ -57,8 +57,10 @@ namespace functionObjects
 bool Foam::functionObjects::specieDiv::calc()
 {
 
-    specieFlux sFlux("specieFlux", mesh_.time(), specieFluxDict);
+    autoPtr<functionObject> sFluxt = functionObject::New("specieFluxforDiv", mesh_.time(), specieFluxDict);
+    specieFluxBase& sFlux = dynamic_cast<specieFluxBase&>(sFluxt());
     sFlux.execute();
+    Info << sFlux.typeName << endl;
     const surfaceScalarField& fluxField =
         lookupObject<surfaceScalarField>(resultName_ + "flux");
         
@@ -88,7 +90,8 @@ Foam::functionObjects::specieDiv::specieDiv
         resultName_ = word("div" + fluxType + '(' + fieldName_ + ')');   
     }
     specieFluxDict.add("field", fieldName_);
-    specieFluxDict.add("fluxType", fluxType);
+    specieFluxDict.add("type", fluxType);
+    specieFluxDict.add("writeControl", "noWrite");
     specieFluxDict.add("result", resultName_ + "flux");
 }
 
