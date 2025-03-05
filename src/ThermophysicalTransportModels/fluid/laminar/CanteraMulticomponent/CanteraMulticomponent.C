@@ -439,8 +439,7 @@ void CanteraMulticomponent<laminarThermophysicalTransportModel>::updateDii() con
        setSnGrad<zeroMassFluxFvPatchScalarField>
             (
                 Y[i].boundaryFieldRef(),
-                -jexp()[i].boundaryField()
-               *DT_[i].boundaryField()
+                jexp()[i].boundaryField()
                /deff.boundaryField()
             );
          }
