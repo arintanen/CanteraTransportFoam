@@ -110,6 +110,7 @@ CanteraMulticomponent<laminarThermophysicalTransportModel>::CanteraMulticomponen
     }
     read();
     this->printCoeffs(typeName);
+    const_cast<thermoModel&>(thermo).normaliseY();
 }
 
 
@@ -121,6 +122,22 @@ tmp<fvScalarMatrix> CanteraMulticomponent<laminarThermophysicalTransportModel>::
     volScalarField& he
 ) const
 {
+  const label d = this->thermo().defaultSpecie();
+PtrList<volScalarField>& Y = const_cast<PtrList<volScalarField>&>(this->thermo().Y());
+      forAll(Y, i)
+      {
+       surfaceScalarField deff = fvc::interpolate(this->alpha()*this->DEff(Y[i]));
+            if (i != d)
+            {
+       setSnGrad<zeroMassFluxFvPatchScalarField>
+            (
+                Y[i].boundaryFieldRef(),
+                jexp()[i].boundaryField()
+               /deff.boundaryField()
+            );
+         }
+      } 
+      
     tmp<fvScalarMatrix> tmpDivq
     (
         fvm::Su
@@ -130,9 +147,7 @@ tmp<fvScalarMatrix> CanteraMulticomponent<laminarThermophysicalTransportModel>::
         )
     );
 
-    const label d = this->thermo().defaultSpecie();
 
-    const PtrList<volScalarField>& Y = this->thermo().Y();
     const volScalarField& p = this->thermo().p();
     const volScalarField& T = this->thermo().T();
 
