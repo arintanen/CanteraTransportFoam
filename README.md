@@ -6,7 +6,7 @@ Originally developed and published as a project "Coupling OpenFOAM with Cantera 
 
 The present version is an **updated version**. Some bugs from the earlier version are fixed and a zero mass flux boundary condition [zeroMassFlux] at walls for species is implemented, which sets the total diffusive flux to zero by defining a Neuman boundary condition from the definition of the total diffusive flux, which is for the mixture-averaged model:
 
-$$\nabla Y_k = -\frac{{D_T}_k}{D_k}\nabla\log (T)$$
+$$\mathbf{j} = 0 \quad \to \quad \nabla Y_k = -\frac{{D_T}_k}{D_k}\nabla\log (T)$$
 
 This prevents species going through the walls of the computational domain due to the Soret effect. For the multicomponent model the gradient for the zeroMassFlux boundary condition is set similarly by solving the $\nabla Y_k$ from equating the flux to zero $\mathbf{j} = 0$. 
 
