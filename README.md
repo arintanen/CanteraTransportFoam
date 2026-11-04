@@ -8,7 +8,7 @@ The present version is an **updated version**. Some bugs from the earlier versio
 
 **Publications using the CanteraTransportFoam:**
 
-S. Karimkashi, P. Tamadonfar, A. Rintanen, T. Zirwes, A. Stagni, V. Vuorinen, O. Kaario, Humidification effects on near-wall NO and N2O formation in NH3/H2 flames, Proceedings of the Combustion Institute, 2026,Humidification effects on near-wall NO and N2O formation in NH3/H2 flames
+S. Karimkashi, P. Tamadonfar, A. Rintanen, T. Zirwes, A. Stagni, V. Vuorinen, O. Kaario, Humidification effects on near-wall NO and N2O formation in NH3/H2 flames, Proceedings of the Combustion Institute, 2026, https://doi.org/10.1016/j.proci.2026.106707
 
 V.-P. Salomaa, P. Tamadonfar, M. Gadalla, V. Vuorinen, O. Kaario, A numerical study of ammonia-hydrogen flames: Propagation and emission formation in crevices, Proceedings of the Combustion Institute, 2026, https://doi.org/10.1016/j.proci.2026.106112
 
