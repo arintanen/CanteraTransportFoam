@@ -1,10 +1,14 @@
-**#CanteraTransportFoam**
+# CanteraTransportFoam
 
-Cantera software has been coupled with OpenFOAM, and a new mixture-averaged diffusion model with Soret effect has been developed, where both mass and thermal diffusion coefficients were calculated inside Cantera. Additionally more robust correction velocity approach has been deployed to balance the imbalance in mass fluxes. The included report has an overview and implementation of the existing thermophysical transport models in OpenFOAM, which at least to the author’s knowledge, are not listed openly anywhere.
+Cantera software has been coupled with OpenFOAM, and a mixture-averaged diffusion model with Soret effect has been developed, where both mass and thermal diffusion coefficients were calculated inside Cantera. Additionally more robust correction velocity approach has been deployed to balance the imbalance in mass fluxes.
 
-Originally developed and published by Aleksi Rintanen as a project "Coupling OpenFOAM with Cantera for advanced diffusion modeling", during the Chalmers University course [CFD with OpenSource Software (2024)], held by Prof. Håkan Nilsson [https://www.tfd.chalmers.se/~hani/kurser/OS_CFD/].
+Originally developed and published as a project "Coupling OpenFOAM with Cantera for advanced diffusion modeling", during the Chalmers University course [CFD with OpenSource Software (2024)], held by Prof. Håkan Nilsson [https://www.tfd.chalmers.se/~hani/kurser/OS_CFD/].
 
-The present version is an **updated version**. Some bugs from the earlier version are fixed and a zero mass flux boundary condition [zeroMassFlux] at walls for species is implemented. This prevents species from exiting the computational domain through the walls due to the Soret effect.
+The present version is an **updated version**. Some bugs from the earlier version are fixed and a zero mass flux boundary condition [zeroMassFlux] at walls for species is implemented, which sets the total diffusive flux to zero by defining a Neuman boundary condition from the definition of the total diffusive flux, which is for the mixture-averaged model:
+
+$$\nabla Y_k = -\frac{{D_T}_k}{D_k}\nabla\log (T)$$
+
+This prevents species going through the walls of the computational domain due to the Soret effect. For the multicomponent model the gradient for the zeroMassFlux boundary condition is set similarly by solving the $\nabla Y_k$ from equating the flux to zero $\mathbf{j} = 0$. 
 
 **Publications using the CanteraTransportFoam:**
 
