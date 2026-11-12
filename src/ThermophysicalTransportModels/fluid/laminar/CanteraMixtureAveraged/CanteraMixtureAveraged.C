@@ -292,94 +292,184 @@ tmp<fvScalarMatrix> CanteraMixtureAveraged<laminarThermophysicalTransportModel>:
             - fvm::div(Jc_*T.mesh().magSf(),Yi,"div(phi,Yi_h)");  
 }
 
-
 template<class laminarThermophysicalTransportModel>
 void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::updateDm() const
 {
-
     const PtrList<volScalarField>& Y = this->thermo().Y();
     const volScalarField& p = this->thermo().p();
     const volScalarField& T = this->thermo().T();
     const volScalarField Wm(this->thermo().W());
+
     Dm_.setSize(Y.size());
+
     forAll(Dm_, i)
     {
         Dm_.set
+        (
+            i,
+            volScalarField::New
             (
-                i,
-                volScalarField::New
-                (
-                    "Dm_" + Y[i].name(),
-                    T.mesh(),
-                    dimensionedScalar(dimKinematicViscosity, scalar(0))
-                )
-            );
-         DT_[i] = Zero;
-        } 
-    Cantera::shared_ptr<Cantera::ThermoPhase> gas = solution_->thermo();
+                "Dm_" + Y[i].name(),
+                T.mesh(),
+                dimensionedScalar(dimKinematicViscosity, scalar(0))
+            )
+        );
+
+        DT_[i] = Zero;
+    }
+
+    Cantera::shared_ptr<Cantera::ThermoPhase> gas =
+        solution_->thermo();
+
     scalarField Ys(Y.size());
-    scalarField Dms(Y.size());
     scalarField DTs(Y.size());
-    scalar epsilon = 1-Y.size()*SMALL;
-    forAll(T,celli) {
-    	forAll(Y,i) {
-            if(Y[i][celli] > epsilon)
+    scalarField Dji(Y.size()*Y.size());
+    scalarField Ylocal(Y.size());
+    scalarField Wi(Y.size());
+
+    forAll(Y, i)
+    {
+        Wi[i] = gas->molecularWeight(speciesIndex_[i]);
+    }
+
+    const scalar epsilon = 1 - Y.size()*SMALL;
+    const auto mixtureDiffusivity = [&](const label k, const scalar Wmix) -> scalar
+        {
+            const label ck = speciesIndex_[k];
+            const scalar Yk = Ylocal[k];
+            const scalar Xk = Yk*Wmix/Wi[k];
+
+            scalar sumXbyD = 0;
+            scalar sumYbyD = 0;
+
+            forAll(Ylocal, j)
+            {
+                if (j != k)
+                {
+                    const label cj = speciesIndex_[j];
+                    const scalar Yj = Ylocal[j];
+                    const scalar Xj = Yj*Wmix/Wi[j];
+                    const scalar Djk = Dji[Y.size()*ck + cj];
+
+                    sumXbyD += Xj/Djk;
+                    sumYbyD += Yj/Djk;
+                }
+            }
+
+            const scalar denominator = (scalar(1) - Yk)*sumXbyD + Xk*sumYbyD;
+            const scalar Dkk = Dji[Y.size()*ck + ck];
+
+            return
+                Dkk*max(scalar(1) - Yk, SMALL)/max(Dkk*denominator, SMALL);
+        };
+
+    // Internal cells
+    forAll(T, celli)
+    {
+        forAll(Y, i)
+        {
+            Ylocal[i] = Y[i][celli];
+
+            if (Y[i][celli] > epsilon)
             {
                 Ys[speciesIndex_[i]] = epsilon;
-            } 
-            else {
+            }
+            else
+            {
                 Ys[speciesIndex_[i]] = Y[i][celli] + SMALL;
             }
-    	}
-    	gas->setState_TPY(T[celli], p[celli], Ys.begin());
-        solution_->transport()->getMixDiffCoeffs(Dms.begin());
-        forAll(Y,i) {
-            Dm_[i][celli] = Dms[speciesIndex_[i]];
         }
-        if(soretEnabled_) {    
-       	    solution_->transport()->getThermalDiffCoeffs(DTs.begin());
-	        forAll(Y,i) {
-		        DT_[i][celli] = DTs[speciesIndex_[i]];
-	        }
-       }
+
+        gas->setState_TPY(T[celli], p[celli], Ys.begin());
+        
+        solution_->transport()->getBinaryDiffCoeffs
+        (
+            Y.size(),
+            Dji.begin()
+        );
+
+        forAll(Y, k)
+        {
+            Dm_[k][celli] = mixtureDiffusivity(k, Wm[celli]);
+        }
+
+        if (soretEnabled_)
+        {
+            solution_->transport()->getThermalDiffCoeffs(DTs.begin());
+
+            forAll(Y, i)
+            {
+                DT_[i][celli] = DTs[speciesIndex_[i]];
+            }
+        }
     }
 
     forAll(T.boundaryField(), patchi)
     {
-        forAll(T.boundaryField()[patchi],facei) 
+        forAll(T.boundaryField()[patchi], facei)
         {
-            forAll(Y,i) {
-                if(Y[i].boundaryField()[patchi][facei] > epsilon)
+            forAll(Y, i)
+            {
+                const scalar Yi = Y[i].boundaryField()[patchi][facei];
+                Ylocal[i] = Yi;
+                if (Yi > epsilon)
                 {
                     Ys[speciesIndex_[i]] = epsilon;
-                } 
-                else {
-                    Ys[speciesIndex_[i]] = Y[i].boundaryField()[patchi][facei] + SMALL;
                 }
-    	    }
-            gas->setState_TPY(T.boundaryField()[patchi][facei], p.boundaryField()[patchi][facei], Ys.begin());
-            solution_->transport()->getMixDiffCoeffs(Dms.begin());
-            forAll(Y,i) {
-                Dm_[i].boundaryFieldRef()[patchi][facei] = Dms[speciesIndex_[i]];
-                
+                else
+                {
+                    Ys[speciesIndex_[i]] = Yi + SMALL;
+                }
             }
-            if(soretEnabled_) {
+
+            gas->setState_TPY
+            (
+                T.boundaryField()[patchi][facei],
+                p.boundaryField()[patchi][facei],
+                Ys.begin()
+            );
+
+            solution_->transport()->getBinaryDiffCoeffs
+            (
+                Y.size(),
+                Dji.begin()
+            );
+
+            forAll(Y, k)
+            {
+                Dm_[k].boundaryFieldRef()[patchi][facei] = mixtureDiffusivity
+                    (
+                        k,
+                        Wm.boundaryField()[patchi][facei]
+                    );
+            }
+
+            if (soretEnabled_)
+            {
                 solution_->transport()->getThermalDiffCoeffs(DTs.begin());
-                forAll(Y,i) {
+
+                forAll(Y, i)
+                {
                     DT_[i].boundaryFieldRef()[patchi][facei] = DTs[speciesIndex_[i]];
                 }
             }
         }
-        forAll(Y,i)
+
+        forAll(Y, i)
         {
-            if(isA<zeroDTFvPatchScalarField>(Y[i].boundaryField()[patchi]))
+            if
+            (
+                isA<zeroDTFvPatchScalarField>(Y[i].boundaryField()[patchi])
+            )
             {
-                DT_[i].boundaryFieldRef()[patchi] = Zero;          
+                DT_[i].boundaryFieldRef()[patchi] = Zero;
             }
         }
-    }      
-      correctJc();
+    }
+
+    correctJc();
 }
+
 
  template<class laminarThermophysicalTransportModel>
  void CanteraMixtureAveraged<laminarThermophysicalTransportModel>::predict()
